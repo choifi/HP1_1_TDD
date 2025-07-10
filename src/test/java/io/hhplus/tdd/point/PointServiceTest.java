@@ -35,6 +35,7 @@ class PointServiceTest {
         initialPoint = 1000L;
     }
 
+    // 포인트 충전
     @Test
     void 초기_포인트가_1000인_사용자가_500_충전시_최종_포인트는_1500이다() {
 
@@ -53,6 +54,7 @@ class PointServiceTest {
         verify(pointHistoryTable).insert(eq(userId), eq(500L), eq(TransactionType.CHARGE), anyLong());
     }
 
+    // 포인트 사용
     @Test
     void 초기_포인트가_1000인_사용자가_500_사용시_최종_포인트는_500이다() {
         UserPoint current = new UserPoint(userId, initialPoint, System.currentTimeMillis());
@@ -82,6 +84,41 @@ class PointServiceTest {
 
         verify(userPointTable).selectById(userId);
         verifyNoMoreInteractions(userPointTable, pointHistoryTable);
+    }
+
+    // 포인트 조회
+    @Test
+    void 사용자의_초기_포인트값_1000이고_이후_500원_충전_후_조회하면_1500이_나온다() {
+        UserPoint current = new UserPoint(userId, initialPoint, System.currentTimeMillis());
+        UserPoint updated = new UserPoint(userId, initialPoint + 500L, System.currentTimeMillis());
+
+        when(userPointTable.selectById(userId)).thenReturn(current).thenReturn(updated);
+        when(userPointTable.insertOrUpdate(userId, updated.point())).thenReturn(updated);
+
+        UserPoint result = userPointService.charge(userId, 500L);
+
+        assertThat(result.point()).isEqualTo(updated.point());
+
+        verify(userPointTable).selectById(userId);
+        verify(userPointTable).insertOrUpdate(userId, 1500L);
+    }
+
+    // 포인트 사용 내역 조회
+    @Test
+    void 사용자의_초기_포인트값_1000이고_이후_300_사용_후_조회하면_700_반환되고_hisoty에_300_조회된다() {
+        UserPoint current = new UserPoint(userId, initialPoint, System.currentTimeMillis());
+        UserPoint updated = new UserPoint(userId, initialPoint - 300L, System.currentTimeMillis());
+
+        when(userPointTable.selectById(userId)).thenReturn(current).thenReturn(updated);
+        when(userPointTable.insertOrUpdate(userId, updated.point())).thenReturn(updated);
+
+        UserPoint result = userPointService.use(userId, 300L);
+
+        assertThat(result.point()).isEqualTo(updated.point());
+
+        verify(userPointTable).selectById(userId);
+        verify(userPointTable).insertOrUpdate(userId, 700L);
+        verify(pointHistoryTable).insert(eq(userId), eq(300L), eq(TransactionType.USE), anyLong());
     }
 
 }
