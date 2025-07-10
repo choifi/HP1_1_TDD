@@ -30,11 +30,13 @@ public class UserPointService {
         if (amount < 0) {
             throw new IllegalArgumentException("포인트 값은 0 이상이여야 합니다.");
         }
+        UserPoint current = userPointTable.selectById(id);
+        UserPoint updated = current.charge(amount);
 
-        userPointTable.insertOrUpdate(id, amount);
+        userPointTable.insertOrUpdate(id, updated.point());
         pointHistoryTable.insert(id, amount, TransactionType.CHARGE, System.currentTimeMillis());
 
-        return userPointTable.selectById(id);
+        return updated;
     }
 
     public UserPoint use(long id, long amount) {
@@ -47,9 +49,10 @@ public class UserPointService {
             throw new IllegalArgumentException("잔여 포인트가 부족합니다.");
         }
 
-        userPointTable.insertOrUpdate(id, -amount);
+        UserPoint updated = userPoint.use(amount);
+        userPointTable.insertOrUpdate(id, updated.point());
         pointHistoryTable.insert(id, amount, TransactionType.USE, System.currentTimeMillis());
 
-        return userPoint;
+        return updated;
     }
 }
